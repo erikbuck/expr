@@ -35,7 +35,7 @@ static void test_vector() {
   assert(vec_len(&strings) == 3);
   int64_t i;
   char *el;
-  vec_foreach(&strings, el, i) { printf("%s %lld\n", el, i); }
+  vec_foreach(&strings, el, i) { printf("%s %ld\n", el, i); }
   vec_free(&strings);
 }
 
@@ -75,7 +75,7 @@ static int64_t assert_tokens(char *s, char **expected) {
         status = 1;
       }
     } else if (n < 0) {
-      printf("FAIL '%s': error %lld\n", test, n);
+      printf("FAIL '%s': error %ld\n", test, n);
       status = 1;
       return 0;
     }
@@ -146,7 +146,7 @@ static int64_t  user_func_print(struct expr_func *f, vec_expr_t *args, void *c) 
   int64_t i;
   struct expr e;
   fprintf(stderr, ">> ");
-  vec_foreach(args, e, i) { fprintf(stderr, "%lld ", expr_eval(&e)); }
+  vec_foreach(args, e, i) { fprintf(stderr, "%ld ", expr_eval(&e)); }
   fprintf(stderr, "\n");
   return 0;
 }
@@ -178,10 +178,10 @@ static void test_expr(char *s, int64_t  expected) {
   }
 
   if ((result - expected) != 0) {
-    printf("FAIL: %s: %lld != %lld\n", p, result, expected);
+    printf("FAIL: %s: %ld != %ld\n", p, result, expected);
     status = 1;
   } else {
-    printf("OK: %s == %lld\n", p, expected);
+    printf("OK: %s == %ld\n", p, expected);
   }
   expr_destroy(e, &vars);
   free(p);
@@ -213,8 +213,9 @@ static void test_unary() {
   test_expr("-1", -1);
   test_expr("--1", -(-1));
   test_expr("!0 ", !0);
-  test_expr("!2 ", !2);
-  test_expr("^3", ~3);
+  test_expr("!2 ", !(bool)2);
+  test_expr("~(0)", ~0);
+  test_expr("~(3)", ~3);
 }
 
 static void test_binary() {
@@ -223,11 +224,11 @@ static void test_binary() {
   test_expr("2*3", 2 * 3);
   test_expr("2+3*4", 2 + 3 * 4);
   test_expr("2*3+4", 2 * 3 + 4);
-  test_expr("2+3/2", 2 + 3.0 / 2.0);
-  test_expr("1/3*6/4*2", 1.0 / 3 * 6 / 4.0 * 2);
-  test_expr("1*3/6*4/2", 1.0 * 3 / 6 * 4.0 / 2.0);
+  test_expr("2+3/2", 2 + 3 / 2);
+  test_expr("1/3*6/4*2", 1 / 3 * 6 / 4 * 2);
+  test_expr("1*3/6*4/2", 1 * 3 / 6 * 4 / 2);
   test_expr("6/2+8*4/2", 19);
-  test_expr("3/2", 3.0 / 2.0);
+  test_expr("3/2", 3 / 2);
   test_expr("(3/2)|0", 3 / 2);
   test_expr("1+2<<3", (1 + 2) << 3);
   test_expr("1<<63", 1UL << 63);
@@ -247,7 +248,6 @@ static void test_binary() {
   test_expr("1==2", 1 == 2);
   test_expr("2==2", 2 == 2);
   test_expr("3==2", 3 == 2);
-  test_expr("3.2==3.1", 3.2f == 3.1f);
   test_expr("1<=2", 1 <= 2);
   test_expr("2<=2", 2 <= 2);
   test_expr("3<=2", 3 <= 2);
@@ -258,17 +258,16 @@ static void test_binary() {
   test_expr("123^42", 123 ^ 42);
 
   test_expr("1-1+1+1", 1 - 1 + 1 + 1);
-  test_expr("2**2**3", 256); /* 2^(2^3), not (2^2)^3 */
 }
 
 static void test_logical() {
-  test_expr("2&&3", 3);
-  test_expr("0&&3", 0);
-  test_expr("3&&0", 0);
-  test_expr("2||3", 2);
-  test_expr("0||3", 3);
-  test_expr("2||0", 2);
-  test_expr("0||0", 0);
+  test_expr("2&&3", 2&&3);
+  test_expr("0&&3", 0&&3);
+  test_expr("3&&0", 3&&0);
+  test_expr("2||3", 2||3);
+  test_expr("0||3", 0||3);
+  test_expr("2||0", 2||0);
+  test_expr("0||0", 0||0);
 
   test_expr("1||(3%0)", 1);
 }
@@ -305,8 +304,6 @@ static void test_funcs() {
   test_expr("$(zero), zero(1, 2, 3)", 0);
   test_expr("$(one, 1), one()+one(1)+one(1, 2, 4)", 3);
   test_expr("$(number, 1), $(number, 2+3), number()", 5);
-  test_expr("$(triw, ($1 * 256) & 255), triw(0.5, 2)", 128);
-  test_expr("$(triw, ($1 * 256) & 255), triw(0.1)+triw(0.7)+triw(0.2)", 255);
 }
 
 static void test_name_collision() {
@@ -318,11 +315,6 @@ static void test_fancy_variable_names() {
   test_expr("one=1", 1);
   test_expr("один=1", 1);
   test_expr("six=6, seven=7, six*seven", 42);
-  test_expr("шість=6, сім=7, шість*сім", 42);
-  test_expr("六=6, 七=7, 六*七", 42);
-  test_expr("ταῦ=1.618, 3*ταῦ", 3 * 1.618);
-  test_expr("$(ταῦ, 1.618), 3*ταῦ()", 3 * 1.618);
-  test_expr("x#4=12, x#3=3, x#4+x#3", 15);
 }
 
 static void test_auto_comma() {
