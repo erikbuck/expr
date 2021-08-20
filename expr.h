@@ -7,7 +7,7 @@ extern "C" {
 
 #include <ctype.h> /* for isspace */
 #include <limits.h>
-//#include <math.h> /* for pow */
+#include <stdbool.h> 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -290,7 +290,8 @@ static int64_t expr_eval(struct expr *e) {
   case OP_UNARY_LOGICAL_NOT:
     return !(expr_eval(&e->param.op.args.buf[0]));
   case OP_UNARY_BITWISE_NOT:
-    return ~(to_int(expr_eval(&e->param.op.args.buf[0])));
+    fprintf(stderr, "OP_UNARY_BITWISE_NOT\n");
+    return (int64_t)(~((uint64_t)to_int(expr_eval(&e->param.op.args.buf[0]))));
   case OP_MULTIPLY:
     return expr_eval(&e->param.op.args.buf[0]) *
            expr_eval(&e->param.op.args.buf[1]);
@@ -587,8 +588,8 @@ static struct expr *expr_create(const char *s, size_t len,
         case '-':
           tok = "-u";
           break;
-        case '^':
-          tok = "^u";
+        case '~':
+          tok = "~u";
           break;
         case '!':
           tok = "!u";
@@ -704,7 +705,7 @@ static struct expr *expr_create(const char *s, size_t len,
             /* Assign macro parameters */
             for (int64_t j = 0; j < vec_len(&arg.args); j++) {
               char varname[4];
-              snprintf(varname, sizeof(varname) - 1, "$%lld", (j + 1));
+              snprintf(varname, sizeof(varname) - 1, "$%ld", (j + 1));
               struct expr_var *v = expr_var(vars, varname, strlen(varname));
               struct expr ev = expr_varref(v);
               struct expr assign =
