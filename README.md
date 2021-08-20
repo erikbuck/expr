@@ -1,3 +1,5 @@
+_Modified by Erik M. Buck to use integer types instead of float_
+
 # expr
 
 [![Build Status](https://travis-ci.org/zserge/expr.svg?branch=master)](https://travis-ci.org/zserge/expr)
