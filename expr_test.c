@@ -7,9 +7,10 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <sys/time.h>
 
-int status = 0;
+int64_t status = 0;
 
 /*
  * VECTOR TESTS
@@ -32,9 +33,9 @@ static void test_vector() {
   vec_push(&strings, "world");
   vec_push(&strings, "foo");
   assert(vec_len(&strings) == 3);
-  int i;
+  int64_t i;
   char *el;
-  vec_foreach(&strings, el, i) { printf("%s %d\n", el, i); }
+  vec_foreach(&strings, el, i) { printf("%s %lld\n", el, i); }
   vec_free(&strings);
 }
 
@@ -59,12 +60,12 @@ static void test_vars() {
 /*
  * LEXER TESTS
  */
-static int assert_tokens(char *s, char **expected) {
-  int len = strlen(s);
-  int flags = EXPR_TDEFAULT;
+static int64_t assert_tokens(char *s, char **expected) {
+  int64_t len = strlen(s);
+  int64_t flags = EXPR_TDEFAULT;
   char *test = s;
   for (;;) {
-    int n = expr_next_token(s, len, &flags);
+    int64_t n = expr_next_token(s, len, &flags);
     if (n == 0) {
       if (*expected == NULL) {
         printf("OK '%s'\n", test);
@@ -74,12 +75,12 @@ static int assert_tokens(char *s, char **expected) {
         status = 1;
       }
     } else if (n < 0) {
-      printf("FAIL '%s': error %d\n", test, n);
+      printf("FAIL '%s': error %lld\n", test, n);
       status = 1;
       return 0;
     }
     if (strncmp(*expected, s, n) != 0) {
-      printf("FAIL '%s': token mismatch %.*s %s\n", test, n, s, *expected);
+      printf("FAIL '%s': token mismatch %.*s %s\n", test, (int)n, s, *expected);
       status = 1;
       return 0;
     }
@@ -98,7 +99,7 @@ static void test_tokizer() {
       (char *[]){"1**11", "1", "**", "11", NULL},
       (char *[]){"1**-11", "1", "**", "-", "11", NULL},
   };
-  for (unsigned int i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
+  for (uint64_t i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
     assert_tokens(TESTS[i][0], TESTS[i] + 1);
   }
 }
@@ -114,7 +115,7 @@ static void user_func_nop_cleanup(struct expr_func *f, void *c) {
   struct nop_context *nop = (struct nop_context *)c;
   free(nop->p);
 }
-static float user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
+static int64_t user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)args;
   struct nop_context *nop = (struct nop_context *)c;
   if (f->ctxsz == 0) {
@@ -127,25 +128,25 @@ static float user_func_nop(struct expr_func *f, vec_expr_t *args, void *c) {
   return 0;
 }
 
-static float user_func_add(struct expr_func *f, vec_expr_t *args, void *c) {
+static int64_t user_func_add(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  float a = expr_eval(&vec_nth(args, 0));
-  float b = expr_eval(&vec_nth(args, 1));
+  int64_t  a = expr_eval(&vec_nth(args, 0));
+  int64_t  b = expr_eval(&vec_nth(args, 1));
   return a + b;
 }
 
-static float user_func_next(struct expr_func *f, vec_expr_t *args, void *c) {
+static int64_t  user_func_next(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  float a = expr_eval(&vec_nth(args, 0));
+  int64_t  a = expr_eval(&vec_nth(args, 0));
   return a + 1;
 }
 
-static float user_func_print(struct expr_func *f, vec_expr_t *args, void *c) {
+static int64_t  user_func_print(struct expr_func *f, vec_expr_t *args, void *c) {
   (void)f, (void)c;
-  int i;
+  int64_t i;
   struct expr e;
   fprintf(stderr, ">> ");
-  vec_foreach(args, e, i) { fprintf(stderr, "%f ", expr_eval(&e)); }
+  vec_foreach(args, e, i) { fprintf(stderr, "%lld ", expr_eval(&e)); }
   fprintf(stderr, "\n");
   return 0;
 }
@@ -158,7 +159,7 @@ static struct expr_func user_funcs[] = {
     {NULL, NULL, NULL, 0},
 };
 
-static void test_expr(char *s, float expected) {
+static void test_expr(char *s, int64_t  expected) {
   struct expr_var_list vars = {0};
   struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
   if (e == NULL) {
@@ -166,7 +167,7 @@ static void test_expr(char *s, float expected) {
     status = 1;
     return;
   }
-  float result = expr_eval(e);
+  int64_t  result = expr_eval(e);
 
   char *p = (char *)malloc(strlen(s) + 1);
   strncpy(p, s, strlen(s) + 1);
@@ -176,12 +177,11 @@ static void test_expr(char *s, float expected) {
     }
   }
 
-  if ((isnan(result) && !isnan(expected)) ||
-      fabs(result - expected) > 0.00001f) {
-    printf("FAIL: %s: %f != %f\n", p, result, expected);
+  if ((result - expected) != 0) {
+    printf("FAIL: %s: %lld != %lld\n", p, result, expected);
     status = 1;
   } else {
-    printf("OK: %s == %f\n", p, expected);
+    printf("OK: %s == %lld\n", p, expected);
   }
   expr_destroy(e, &vars);
   free(p);
@@ -207,7 +207,6 @@ static void test_const() {
   test_expr("1", 1);
   test_expr(" 1 ", 1);
   test_expr("12", 12);
-  test_expr("12.3", 12.3);
 }
 
 static void test_unary() {
@@ -230,14 +229,14 @@ static void test_binary() {
   test_expr("6/2+8*4/2", 19);
   test_expr("3/2", 3.0 / 2.0);
   test_expr("(3/2)|0", 3 / 2);
-  test_expr("(3/0)", INFINITY);
-  test_expr("(3/0)|0", INT_MAX);
-  test_expr("(3%0)", NAN);
-  test_expr("(3%0)|0", 0);
-  test_expr("2**3", 8);
-  test_expr("9**(1/2)", 3);
   test_expr("1+2<<3", (1 + 2) << 3);
-  test_expr("2<<3", 2 << 3);
+  test_expr("1<<63", 1UL << 63);
+   test_expr("1<<62", 1UL << 62);
+   test_expr("(1<<16) - 1", (1<<16) - 1);
+   test_expr("((1<<16) - 1) & 63", ((1<<16) - 1) & 63);
+   test_expr("((1<<16)) | 63", ((1<<16)) | 63);
+   test_expr("~(1<<16)", ~(1<<16));
+   test_expr("~(1<<16) & 63", ~(1<<16) & 63);
   test_expr("12>>2", 12 >> 2);
   test_expr("1<2", 1 < 2);
   test_expr("2<2", 2 < 2);
@@ -271,16 +270,12 @@ static void test_logical() {
   test_expr("2||0", 2);
   test_expr("0||0", 0);
 
-  test_expr("1&&(3%0)", NAN);
-  test_expr("(3%0)&&1", NAN);
   test_expr("1||(3%0)", 1);
-  test_expr("(3%0)||1", 1);
 }
 
 static void test_parens() {
   test_expr("(1+2)*3", (1 + 2) * 3);
   test_expr("(1)", 1);
-  test_expr("(2.4)", 2.4);
   test_expr("((2))", 2);
   test_expr("(((3)))", 3);
   test_expr("(((3)))*(1+(2))", 9);
