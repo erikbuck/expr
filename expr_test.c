@@ -98,6 +98,8 @@ static void test_tokizer() {
       (char *[]){"1*11", "1", "*", "11", NULL},
       (char *[]){"1*~11", "1", "*", "~", "11", NULL},
       (char *[]){"1*!-11", "1", "*", "!", "-", "11", NULL},
+      (char *[]){";", ";", NULL},
+      (char *[]){"1;", "1", ";", NULL},
   };
   for (uint64_t i = 0; i < sizeof(TESTS) / sizeof(TESTS[0]); i++) {
     assert_tokens(TESTS[i][0], TESTS[i] + 1);
