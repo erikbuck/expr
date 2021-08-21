@@ -171,18 +171,14 @@ extern "C"
 
    static int64_t expr_prec(enum expr_type a, enum expr_type b)
    {
-      int64_t left = expr_is_binary(a) && a != OP_ASSIGN &&
-                     a != OP_COMMA;
+      int64_t left = expr_is_binary(a) && a != OP_ASSIGN && a != OP_COMMA;
       return (left && prec[a] >= prec[b]) || (prec[a] > prec[b]);
    }
 
-#define isfirstvarchr(c)                                            \
-   (((unsigned char)c >= '@' && c != ';' && c != '^' && c != '~' && \
-     c != '|') ||                                                   \
-    c == '$')
-#define isvarchr(c)                                                 \
-   (((unsigned char)c >= '@' && c != ';' && c != '^' && c != '~' && \
-     c != '|') ||                                                   \
+#define isfirstvarchr(c) \
+   (((unsigned char)c >= '@' && c != '^' && c != '~' && c != '|') || c == '$')
+#define isvarchr(c)                                                  \
+   (((unsigned char)c >= '@' && c != '^' && c != '~' && c != '|') || \
     c == '$' || c == '#' || (c >= '0' && c <= '9'))
 
    static struct
@@ -694,7 +690,7 @@ extern "C"
          const char* tok = s;
          s               = s + n;
          len             = len - n;
-         if (*tok == '#')
+         if (*tok == '#' || *tok == ';')
          {
             continue;
          }
