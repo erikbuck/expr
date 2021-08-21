@@ -221,6 +221,7 @@ static void test_unary() {
 }
 
 static void test_binary() {
+  test_expr("4831904104 + 4 + (5 * 4);", 4831904104L + 4 + (5 * 4));
   test_expr("1+2", 1 + 2);
   test_expr("10-2", 10 - 2);
   test_expr("2*3", 2 * 3);
