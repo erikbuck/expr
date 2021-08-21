@@ -98,7 +98,6 @@ extern "C"
 
       OP_ASSIGN,
       OP_COMMA,
-      OP_UNARY_NOP,
 
       OP_CONST,
       OP_VAR,
@@ -172,7 +171,7 @@ extern "C"
 
    static int64_t expr_prec(enum expr_type a, enum expr_type b)
    {
-      int64_t left = expr_is_binary(a) && a != OP_ASSIGN && a != OP_UNARY_NOP &&
+      int64_t left = expr_is_binary(a) && a != OP_ASSIGN &&
                      a != OP_COMMA;
       return (left && prec[a] >= prec[b]) || (prec[a] > prec[b]);
    }
@@ -214,7 +213,6 @@ extern "C"
       {"||", OP_LOGICAL_OR},
       {"=", OP_ASSIGN},
       {",", OP_COMMA},
-      {";", OP_UNARY_NOP},
 
       /* These are used by lexer and must be ignored by parser, so we put
          them at the end */
@@ -404,8 +402,6 @@ extern "C"
          case OP_COMMA:
             expr_eval(&e->param.op.args.buf[0]);
             return expr_eval(&e->param.op.args.buf[1]);
-         case OP_UNARY_NOP:
-            return 0;
          case OP_CONST:
             return e->param.num.value;
          case OP_VAR:
@@ -459,9 +455,9 @@ extern "C"
          }
          return i;
       }
-      else if (isspace(c))
+      else if (isspace(c) || (c == ';'))
       {
-         while (i < len && isspace(s[i]) && s[i] != '\n')
+         while (i < len && (isspace(s[i]) || s[i] == ';') && s[i] != '\n')
          {
             i++;
          }
